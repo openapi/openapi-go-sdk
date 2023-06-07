@@ -32,10 +32,10 @@ func main() {
 
 	// Create a token for a list of scopes
 	scopes := []string{
-		"GET:test.cap.openapi.it/cerca_comuni",
-		"POST:test.postontarget.com/fields/country",
+        	"GET:test.imprese.openapi.it/advance",
+        	"POST:test.postontarget.com/fields/country",
 	}
-	ttl := 2592000
+	ttl := 3600
 	resp, err := oauthClient.CreateToken(ctx, scopes, ttl) // returns the json as string
 	if err != nil {
 		log.Fatal(err)
