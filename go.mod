@@ -1,3 +1,3 @@
-module github.com/openapi-it/openapi-cli-go
+module github.com/openapi/openapi-go-sdk
 
 go 1.19
