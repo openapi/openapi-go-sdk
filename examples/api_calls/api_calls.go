@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/openapi-it/openapi-cli-go/pkg/client"
+	"github.com/openapi/openapi-go-sdk/pkg/client"
 )
 
 func main() {

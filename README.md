@@ -7,8 +7,8 @@
   <h4>The perfect starting point to integrate <a href="https://openapi.com/">Openapi®</a> within your Go project</h4>
 
 [![Build Status](https://github.com/openapi/openapi-go-sdk/actions/workflows/go.yml/badge.svg)](https://github.com/openapi/openapi-go-sdk/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/openapi-it/openapi-cli-go)](https://goreportcard.com/report/github.com/openapi-it/openapi-cli-go)
-[![Go Reference](https://pkg.go.dev/badge/github.com/openapi-it/openapi-cli-go.svg)](https://pkg.go.dev/github.com/openapi-it/openapi-cli-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openapi/openapi-go-sdk)](https://goreportcard.com/report/github.com/openapi/openapi-go-sdk)
+[![Go Reference](https://pkg.go.dev/badge/github.com/openapi/openapi-go-sdk.svg)](https://pkg.go.dev/github.com/openapi/openapi-go-sdk)
 [![License](https://img.shields.io/github/license/openapi/openapi-go-sdk)](LICENSE)
 <br>
 [![Linux Foundation Member](https://img.shields.io/badge/Linux%20Foundation-Silver%20Member-003778?logo=linux-foundation&logoColor=white)](https://www.linuxfoundation.org/about/members)
@@ -44,11 +44,67 @@ For a complete list of all available services, check out the [Openapi Marketplac
 
 ## Installation
 
+Add the SDK to your project:
+
 ```bash
-go get github.com/openapi-it/openapi-cli-go
+go get github.com/openapi/openapi-go-sdk
+```
+
+Then import the client package:
+
+```go
+import "github.com/openapi/openapi-go-sdk/pkg/client"
 ```
 
 ## Usage
+
+### Token generation
+
+Use `OauthClient` to authenticate with your credentials and generate a scoped access token.
+The `test` flag switches between the sandbox (`true`) and production (`false`) OAuth endpoint.
+
+```go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+
+	"github.com/openapi/openapi-go-sdk/pkg/client"
+)
+
+func main() {
+	ctx := context.Background()
+
+	oauthClient := client.NewOauthClient("<your_username>", "<your_apikey>", true)
+
+	scopes := []string{
+		"GET:test.imprese.openapi.it/advance",
+		"POST:test.postontarget.com/fields/country",
+	}
+	resp, err := oauthClient.CreateToken(ctx, scopes, 3600)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tokenResponse := struct {
+		Scopes []string `json:"scopes"`
+		Token  string   `json:"token"`
+	}{}
+	if err := json.Unmarshal([]byte(resp), &tokenResponse); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("token: %s\n", tokenResponse.Token)
+}
+```
+
+### Making API calls
+
+Use `Client` with the token obtained above to call any Openapi service.
+Pass the base URL and endpoint separately so the client can correctly attach query parameters.
 
 ```go
 package main
@@ -57,50 +113,29 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
-	client "github.com/openapi-it/openapi-cli-go/pkg/client"
+	"github.com/openapi/openapi-go-sdk/pkg/client"
 )
 
 func main() {
 	ctx := context.Background()
+	apiClient := client.NewClient("<your_access_token>")
 
-	// Initialize the OAuth client on the sandbox environment
-	oauthClient := client.NewOauthClient("<your_username>", "<your_apikey>", true)
-
-	// Create a token for a list of scopes
-	scopes := []string{
-		"GET:test.imprese.openapi.it/advance",
-		"POST:test.postontarget.com/fields/country",
-	}
-	ttl := 3600
-	resp, err := oauthClient.CreateToken(ctx, scopes, ttl)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Parse the token response
-	tokenResponse := struct {
-		Scopes []string `json:"scopes"`
-		Token  string   `json:"token"`
-	}{}
-	_ = json.Unmarshal([]byte(resp), &tokenResponse)
-
-	// Initialize the API client with the token
-	apiClient := client.NewClient(tokenResponse.Token)
-
-	// GET request with query params
+	// GET with query parameters
 	params := map[string]string{
 		"denominazione": "altravia",
 		"provincia":     "RM",
 		"codice_ateco":  "6201",
 	}
-	_, err = apiClient.Request(ctx, "GET", "https://test.imprese.openapi.it", "/advance", nil, params)
+	result, err := apiClient.Request(ctx, "GET", "https://test.imprese.openapi.it", "/advance", nil, params)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println(result)
 
-	// POST request with a payload
+	// POST with a JSON payload
 	payload := struct {
 		Limit int `json:"limit"`
 		Query struct {
@@ -116,17 +151,36 @@ func main() {
 	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
 		log.Fatal(err)
 	}
-	_, err = apiClient.Request(ctx, "POST", "https://test.postontarget.com", "/fields/country", &buf, nil)
+	result, err = apiClient.Request(ctx, "POST", "https://test.postontarget.com", "/fields/country", &buf, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// Delete the token when done
-	_, err = oauthClient.DeleteToken(ctx, tokenResponse.Token)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fmt.Println(result)
 }
+```
+
+More complete examples are available in the [`examples/`](examples/) directory.
+
+## Testing
+
+The SDK ships with a suite of unit tests that use `net/http/httptest` — no real network calls, no credentials needed.
+
+Run the full suite:
+
+```bash
+go test ./...
+```
+
+Run with verbose output to see each test case:
+
+```bash
+go test -v ./pkg/client/...
+```
+
+Run a single test by name:
+
+```bash
+go test -v -run TestCreateToken ./pkg/client/...
 ```
 
 ## Contributing
@@ -139,7 +193,7 @@ See [docs/contributing.md](docs/contributing.md) for detailed instructions on ho
 
 Meet the project authors:
 
-- L. Paderi ([@lpaderiAltravia](https://www.github.com/lpaderiAltravia))
+- Michael Cuffaro ([@maiku1008](https://www.github.com/maiku1008))
 - Openapi Team ([@openapi-it](https://github.com/openapi-it))
 
 ## Partners
