@@ -36,6 +36,7 @@
 ## =========
 
 VERSION := 1.2.1
+TAG     := v$(VERSION)
 
 ## ====================
 ## Development Commands
@@ -43,6 +44,9 @@ VERSION := 1.2.1
 
 test:
 	@go test ./...
+
+vet:
+	@go vet ./...
 
 dev-push:
 	@git config credential.helper 'cache --timeout=3600'
@@ -59,8 +63,24 @@ push:
 	@git commit -am "Updated at $$(date)" || true
 	@git push
 
-release: push
-	@git add .
-	@git commit -m "Update Go SDK to version ${VERSION}" || echo "No changes to commit"
-	@git tag -fa "${VERSION}" -m "${VERSION}"
-	@git push origin --tags -f
+release:
+	@echo "==> Releasing $(TAG)..."
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
+		echo "ERROR: releases must be cut from the main branch"; exit 1; \
+	fi
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "ERROR: working directory is not clean"; exit 1; \
+	fi
+	@echo "==> Running tests..."
+	@go test ./...
+	@echo "==> Running vet..."
+	@go vet ./...
+	@echo "==> Tagging $(TAG)..."
+	@git tag -a "$(TAG)" -m "Release $(TAG)"
+	@git push origin "$(TAG)"
+	@echo "==> Creating GitHub release..."
+	@gh release create "$(TAG)" \
+		--title "$(TAG)" \
+		--generate-notes \
+		--verify-tag
+	@echo "==> Done. Release $(TAG) is live."
