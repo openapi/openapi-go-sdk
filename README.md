@@ -1,39 +1,38 @@
 <div align="center">
   <a href="https://openapi.com/">
-    <img alt="Openapi SDK for PHP" src=".github/assets/repo-header-a3.png" >
+    <img alt="Openapi SDK for Go" src=".github/assets/repo-header-a3.png" >
   </a>
 
-  <h1>Openapi® client for PHP</h1>
-  <h4>The perfect starting point to integrate <a href="https://openapi.com/">Openapi®</a> within your PHP project</h4>
+  <h1>Openapi® client for Go</h1>
+  <h4>The perfect starting point to integrate <a href="https://openapi.com/">Openapi®</a> within your Go project</h4>
 
-[![Build Status](https://github.com/openapi/openapi-php-sdk/actions/workflows/php.yml/badge.svg)](https://github.com/openapi/openapi-php-sdk/actions/workflows/php.yml)
-[![Packagist Version](https://img.shields.io/packagist/v/openapi/openapi-sdk)](https://packagist.org/packages/openapi/openapi-sdk)
-[![PHP Version](https://img.shields.io/packagist/php-v/openapi/openapi-sdk)](https://packagist.org/packages/openapi/openapi-sdk)
-[![License](https://img.shields.io/github/license/openapi/openapi-php-sdk?v=2)](LICENSE)
-[![Downloads](https://img.shields.io/packagist/dt/openapi/openapi-sdk)](https://packagist.org/packages/openapi/openapi-sdk)
+[![Build Status](https://github.com/openapi/openapi-go-sdk/actions/workflows/go.yml/badge.svg)](https://github.com/openapi/openapi-go-sdk/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openapi-it/openapi-cli-go)](https://goreportcard.com/report/github.com/openapi-it/openapi-cli-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/openapi-it/openapi-cli-go.svg)](https://pkg.go.dev/github.com/openapi-it/openapi-cli-go)
+[![License](https://img.shields.io/github/license/openapi/openapi-go-sdk)](LICENSE)
 <br>
 [![Linux Foundation Member](https://img.shields.io/badge/Linux%20Foundation-Silver%20Member-003778?logo=linux-foundation&logoColor=white)](https://www.linuxfoundation.org/about/members)
 </div>
 
 ## Overview
 
-A minimal and agnostic PHP SDK for Openapi, inspired by a clean client implementation. This SDK provides only the core HTTP primitives needed to interact with any Openapi service.
+A minimal and agnostic Go SDK for Openapi, providing only the core HTTP primitives needed to interact with any Openapi service.
 
 ## Pre-requisites
 
-Before using the Openapi PHP Client, you will need an account at [Openapi](https://console.openapi.com/) and an API key to the sandbox and/or production environment
+Before using the Openapi Go Client, you will need an account at [Openapi](https://console.openapi.com/) and an API key to the sandbox and/or production environment.
 
 ## Features
 
-- **Agnostic Design**: No API-specific classes, works with any OpenAPI service
-- **Minimal Dependencies**: Only requires PHP 8.0+ and cURL
+- **Agnostic Design**: No API-specific classes, works with any Openapi service
+- **Minimal Dependencies**: Only requires Go 1.19+
 - **OAuth Support**: Built-in OAuth client for token management
-- **HTTP Primitives**: GET, POST, PUT, DELETE, PATCH methods
-- **Clean Interface**: Similar to the Rust SDK design
+- **HTTP Primitives**: GET, POST, PUT, DELETE and other HTTP methods
+- **Clean Interface**: Simple and idiomatic Go API
 
 ## What you can do
 
-With the Openapi PHP Client, you can easily interact with a variety of services in the Openapi Marketplace. For example, you can:
+With the Openapi Go Client, you can easily interact with a variety of services in the Openapi Marketplace. For example, you can:
 
 - 📩 **Send SMS messages** with delivery reports and custom sender IDs
 - 💸 **Process bills and payments** in real time via API
@@ -43,83 +42,72 @@ With the Openapi PHP Client, you can easily interact with a variety of services 
 
 For a complete list of all available services, check out the [Openapi Marketplace](https://console.openapi.com/) 🌐
 
-# OpenApi IT Go Client 
-
-This client is used to interact with the API found at [openapi.it](https://openapi.it/)
-
-## Pre-requisites
-
-Before using the OpenApi IT Go Client, you will need an account at [openapi.it](https://openapi.it/) and an API key to the sandbox and/or production environment
-
 ## Installation
-
-You can install the OpenApi IT Go Client with the following command using go get:
 
 ```bash
 go get github.com/openapi-it/openapi-cli-go
 ```
-    
+
 ## Usage
 
 ```go
-// main.go
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"log"
+
 	client "github.com/openapi-it/openapi-cli-go/pkg/client"
 )
 
 func main() {
-	// Initialize the oauth client on the sandbox environment
 	ctx := context.Background()
+
+	// Initialize the OAuth client on the sandbox environment
 	oauthClient := client.NewOauthClient("<your_username>", "<your_apikey>", true)
 
 	// Create a token for a list of scopes
 	scopes := []string{
-        	"GET:test.imprese.openapi.it/advance",
-        	"POST:test.postontarget.com/fields/country",
+		"GET:test.imprese.openapi.it/advance",
+		"POST:test.postontarget.com/fields/country",
 	}
 	ttl := 3600
-	resp, err := oauthClient.CreateToken(ctx, scopes, ttl) // returns the json as string
+	resp, err := oauthClient.CreateToken(ctx, scopes, ttl)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// The string response can be parsed into a custom object
+	// Parse the token response
 	tokenResponse := struct {
 		Scopes []string `json:"scopes"`
 		Token  string   `json:"token"`
 	}{}
 	_ = json.Unmarshal([]byte(resp), &tokenResponse)
 
-	// Initialize the client
-	client := client.NewClient(tokenResponse.Token)
+	// Initialize the API client with the token
+	apiClient := client.NewClient(tokenResponse.Token)
 
-	// Make a request with params
+	// GET request with query params
 	params := map[string]string{
 		"denominazione": "altravia",
 		"provincia":     "RM",
 		"codice_ateco":  "6201",
 	}
-	_, err = client.Request(
-		ctx,
-		"GET",
-		"https://test.imprese.openapi.it",
-		"/advance",
-		nil, params,
-	)
+	_, err = apiClient.Request(ctx, "GET", "https://test.imprese.openapi.it", "/advance", nil, params)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Make a request with a payload
+	// POST request with a payload
 	payload := struct {
 		Limit int `json:"limit"`
 		Query struct {
 			CountryCode string `json:"country_code"`
 		} `json:"query"`
 	}{
-		Limit: 0,
+		Limit: 10,
 		Query: struct {
 			CountryCode string `json:"country_code"`
 		}{CountryCode: "IT"},
@@ -128,26 +116,18 @@ func main() {
 	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
 		log.Fatal(err)
 	}
-	_, err = client.Request(
-		ctx,
-		"POST",
-		"https://test.postontarget.com",
-		"/fields/country",
-		&buf,
-		nil,
-	)
+	_, err = apiClient.Request(ctx, "POST", "https://test.postontarget.com", "/fields/country", &buf, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Delete the token
+	// Delete the token when done
 	_, err = oauthClient.DeleteToken(ctx, tokenResponse.Token)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 ```
-
 
 ## Contributing
 
@@ -193,4 +173,3 @@ The MIT License is a permissive open-source license that allows you to freely us
 In short, you are free to use this SDK in your personal, academic, or commercial projects, with minimal restrictions. The project is provided "as-is", without any warranty of any kind, either expressed or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement.
 
 For more details, see the full license text at the [MIT License page](https://choosealicense.com/licenses/mit/).
-
