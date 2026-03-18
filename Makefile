@@ -35,7 +35,7 @@
 ## Variables
 ## =========
 
-VERSION := 1.2.1
+VERSION := 0.2.1
 TAG     := v$(VERSION)
 
 ## ====================
