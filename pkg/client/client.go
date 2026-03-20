@@ -53,3 +53,25 @@ func (c *Client) Request(
 	}
 	return request(ctx, c.httpClient, opts)
 }
+func (c *Client) RequestBytes(
+	ctx context.Context,
+	method string,
+	baseURL string,
+	endpoint string,
+	body io.Reader,
+	params map[string]string) ([]byte,error){
+		queryParams := url.Values{}
+	for key, value := range params {
+		queryParams.Set(key, value)
+	}
+	opts := &requestOptions{
+		method:      method,
+		baseURL:     baseURL,
+		endpoint:    endpoint,
+		authString:  c.authHeader,
+		payload:     body,
+		queryParams: queryParams,
+	}
+	return requestBytes(ctx, c.httpClient, opts)
+		
+	}
