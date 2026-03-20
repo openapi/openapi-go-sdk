@@ -58,5 +58,43 @@ func request(
 	if err != nil {
 		return "", err
 	}
+	
 	return formattedJSON.String(), nil
+}
+
+func requestBytes(
+	ctx context.Context,
+	client httpClient,
+	opts *requestOptions) ([]byte, error) {
+
+	req, err := http.NewRequestWithContext(ctx, opts.method, opts.baseURL, opts.payload)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", opts.authString)
+	req.Header.Add("Content-Type", `application/json`)
+	req.URL.Path += opts.endpoint
+
+	if opts.queryParams != nil {
+		req.URL.RawQuery = opts.queryParams.Encode()
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var formattedJSON bytes.Buffer
+	err = json.Indent(&formattedJSON, body, "", "\t")
+	if err != nil {
+		return nil, err
+	}
+	
+	return formattedJSON.Bytes(), nil
 }
